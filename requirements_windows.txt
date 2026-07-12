@@ -1,0 +1,34 @@
+# Windows installation targets for Real-Time AI Meeting Copilot.
+# Use primary first; if a wheel is unavailable, try the native marker fallback
+# below or switch to the CPU block in docs/install_plan.md.
+#
+# Primary: CUDA 12.1 + Windows wheels
+# -----------------------------------------------------------
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
+--index-url https://download.pytorch.org/whl/cu121
+torch==2.3.1
+torchaudio==2.3.1
+triton==2.3.1
+faster-whisper==1.0.3
+soundcard==0.4.0
+numpy==1.26.4
+scipy==1.13.1
+PyQt6==6.6.1
+PyQt6-WebKit==6.6.0
+pydantic==2.5.3
+PyYAML==6.0.1
+sentence-transformers==2.7.0
+faiss-cpu==1.8.0
+
+# Fallbacks / native markers (pip will skip lines it cannot parse)
+# -----------------------------------------------------------
+# If the llama-cpp-python CUDA wheel above fails, try this CPU wheel instead:
+# llama-cpp-python==0.2.90
+
+# If CUDA PyTorch/triton wheels fail on an older driver, this may install:
+# torch==2.3.1
+# torchaudio==2.3.1
+
+# If faster-whisper / ctranslate2 CUDA wheels fail, force CPU install:
+# ctranslate2
+# faster-whisper==1.0.3
