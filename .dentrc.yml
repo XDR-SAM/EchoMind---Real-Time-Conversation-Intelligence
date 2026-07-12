@@ -1,0 +1,14 @@
+project_root: "."
+
+files:
+  include:
+    - "backend/**/*.py"
+    - "scripts/**/*"
+    - "README.md"
+  exclude:
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - ".venv/**"
+    - "models/**"
+    - "docs_ingested/**"
+    - "*.egg-info/**"
