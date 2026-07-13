@@ -235,7 +235,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         window = OverlayWindow(ui_queue)
         window.show()
     except Exception as exc:
-        LOG.error("UI initialization failed: %s", exc, exc_info=True)
         print(f"Fatal: UI initialization failed: {exc}")
         try:
             app.quit()

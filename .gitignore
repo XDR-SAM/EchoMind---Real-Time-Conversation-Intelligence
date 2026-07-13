@@ -1,0 +1,9 @@
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.venv/
+models/
+docs_ingested/
+.env
+*.gguf

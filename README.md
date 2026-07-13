@@ -74,10 +74,32 @@ python backend\main.py
 ```
 
 Controls:
-- **Drag** the title bar to move the overlay.
+- **Drag** anywhere on the overlay body to move it.
+- **Unpin/Pin** lets the overlay stop staying on top.
 - **Microphone checkbox** switches to mic input for testing.
-- **Unpin/Exit** buttons on the bottom.
-
+- **Exit** closes the app; closing the window hides it to the system tray instead.
+- **System tray icon**: single-click or double-click to restore/hide the overlay.
+- Right-click the tray icon for Restore, Pin/Unpin, and Quit.
+## Windows Notes
+- **Always-on-top**: enabled by default. Use **Unpin** if the overlay interferes with full-screen apps.
+- **DPI scaling**: the app uses `PassThrough` rounding. If the overlay looks blurry, set Windows display scaling to 100% or restart the app after changing scaling.
+- **Minimize to tray**: closing the overlay keeps the backend running in the background. Use the tray icon to bring it back.
+- **Audio**: if no device is found, enable `Stereo Mix` in Windows Sound Settings and set `DEVICE_NAME_SUBSTR` in `backend/config.py`.
+- **Tray launcher**: for a minimal background-first start, run:
+  ```
+  python scripts\tray_launcher.py
+  ```
+  The overlay stays hidden until you click the tray icon.
+## Controls
+| Control | Location | Action |
+|---|---|--|
+| Drag | Overlay body | Move window position |
+| Unpin / Pin | Bottom button | Toggle always-on-top |
+| Microphone | Header checkbox | Toggle mic input |
+| Close / Exit | Bottom button | Exit app |
+| Tray icon | Windows taskbar | Restore / hide overlay |
+| Tray menu | Right-click | Restore, Pin, Quit |
+## Troubleshooting
 ## Configuration
 
 Edit `backend\config.py` before running:
