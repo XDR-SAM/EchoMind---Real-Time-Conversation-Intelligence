@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     MODEL_NAME: str = "small"  # "tiny", "small", "base", "medium.en"
     TRANSCRIBE_DEVICE: str = "cpu"  # "cpu" preferred to save VRAM for LLM on 6GB cards
     TRANSCRIBE_COMPUTE_TYPE: str = "int8"  # int8 on CPU, float16 on CUDA
-    LLM_MODEL_PATH: str = str(MODEL_DIR / "llama-2-7b-chat.Q4_K_M.gguf")
+    LLM_MODEL_PATH: str = str(MODEL_DIR / "NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf")
     LLM_CONTEXT_SIZE: int = 2048
     LLM_GPU_LAYERS: int = 35  # offload as many layers as fit on RTX 2060 6GB
     RAG_EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
