@@ -115,27 +115,44 @@ MAX_TRANSCRIPT_CHARS: int = 1200      # context window fed to the LLM
 
 ## Project Structure
 
-```
+```txt
 real-time-ai-copilot/
 ├── backend/
 │   ├── __init__.py
-│   ├── audio_capture.py     # WASAPI loopback via soundcard
-│   ├── backend.config.py    # typed config, env loading
-│   ├── backend.context_engine.py  # Sentence-Transformers + FAISS
-│   ├── backend.llm_engine.py      # llama-cpp-python wrapper
-│   ├── backend.main.py            # application entrypoint
-│   ├── backend.pipeline.py        # async inference pipeline
-│   ├── backend.transcriber.py     # faster-whisper wrapper
-│   ├── backend.ui.py              # PyQt6 floating overlay
-│   └── backend.vad.py             # lightweight energy-based VAD
+│   ├── audio_capture.py         # WASAPI loopback via soundcard
+│   ├── config.py                # typed settings, env loading
+│   ├── context_engine.py        # Sentence-Transformers + FAISS
+│   ├── llm_engine.py            # llama-cpp-python wrapper
+│   ├── main.py                  # application entrypoint
+│   ├── pipeline.py              # phased inference pipeline
+│   ├── transcriber.py           # faster-whisper wrapper
+│   ├── ui.py                    # PyQt6 floating overlay
+│   └── vad.py                   # lightweight energy-based VAD
 ├── scripts/
 │   ├── download_models.py
 │   └── run.py
 ├── docs/
 │   └── engineering.md
 ├── requirements.txt
+├── requirements_windows.txt
 └── README.md
 ```
+
+## Pipeline Contract
+
+This app uses a phased pipeline with explicit expected outputs and guardrails, inspired by lightweight agent orchestration patterns:
+
+| Phase | Responsibility | Expected Outcome |
+|---|---|---|
+| `transcribe` | Convert audio → text, detect or continue language | `transcript_window` is a string; `latest_lang` is `en` or `bn` |
+| `retrieval` | Search the local docs index with the transcript window | `context_snippet` becomes relevant document text or `""` |
+| `reasoning` | Generate inline assistant suggestion | `validated_suggestion` is a `SuggestionCandidate` or `None` |
+| `emit` | Dispatch a bounded update to the UI queue | The overlay receives one transcript + one suggestion payload |
+
+**Guardrails:**
+- Empty or oversized LLM outputs are rejected before they reach the overlay.
+- Transcript context is capped at 1,200 characters.
+- UI updates skip redundant text to reduce repaint churn.
 
 ## Troubleshooting
 

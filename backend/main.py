@@ -157,10 +157,14 @@ def _run_benchmark(cuda: bool) -> int:
             n_ctx=settings.LLM_CONTEXT_SIZE,
             n_gpu_layers=settings.LLM_GPU_LAYERS,
         )
-        suggestion = llm.suggest("Hello.", max_tokens=16, temperature=0.0)
+        suggestion = llm.suggest_structured(
+            transcript="Hello.",
+            max_tokens=16,
+            temperature=0.0,
+        )
         llm.close()
         llm_s = time.perf_counter() - t0
-        print(f"llm_latency={llm_s:.3f}s suggestion={suggestion!r}")
+        print(f"llm_latency={llm_s:.3f}s suggestion={suggestion.text!r}")
     except Exception as exc:
         LOG.error("LLM benchmark failed", exc_info=True)
         print(f"llm_latency=FAILED:{exc}")
