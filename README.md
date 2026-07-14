@@ -300,4 +300,4 @@ Please keep tests green. If your change affects the latency budget, update `docs
 
 ## 📄 License
 
-Private / Commercial — modify freely for production use.
+MIT License — see [LICENSE](LICENSE).
