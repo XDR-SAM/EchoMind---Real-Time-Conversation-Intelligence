@@ -31,6 +31,11 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
 
 ---
 
+## 👤 Author
+
+Developed by **Sami**.
+
+---
 ## ✨ Features
 
 - **Live system audio transcription** — WASAPI loopback with `soundcard`, Works with meeting apps, browser tabs, and music.
