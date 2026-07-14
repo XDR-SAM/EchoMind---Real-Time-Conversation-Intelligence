@@ -1,12 +1,12 @@
 # Usage Guide
 
-How to launch, control, and operate Real-Time AI Meeting Copilot on Windows.
+How to launch, control, and operate EchoMind on Windows.
 
 ## First-run checklist
 
 After installation and model download, make sure:
 
-- [ ] `models\llama-2-7b-chat.Q4_K_M.gguf` exists and is roughly 4GB
+- [ ] `backend\models\llama-2-7b-chat.Q4_K_M.gguf` exists and is roughly 4GB
 - [ ] `backend\docs_ingested\` exists
 - [ ] Windows recording device matching `DEVICE_NAME_SUBSTR` is present
 - [ ] Optional: `python backend\main.py --benchmark` passes
@@ -35,7 +35,7 @@ The overlay stays hidden until you use the tray icon.
 
 ## Controls
 
-| Control | Location | Action |
+|| Control | Location | Action |
 |---|---|---|
 | Drag | Overlay body | Move window |
 | Microphone | Header checkbox | Toggle mic vs system audio |
@@ -43,6 +43,34 @@ The overlay stays hidden until you use the tray icon.
 | Exit | Bottom button | Quit the app |
 | Tray icon | Taskbar | Single-click or double-click to restore/hide |
 | Tray menu | Right-click tray icon | Restore, Pin, Quit |
+
+## Session controls
+
+The app tracks named recording sessions so you can organize work without restarting.
+
+### Start / stop / name
+
+- **Start session:** begin capturing transcript and suggestions. The session starts with an empty/default title.
+- **Set session name:** change the current session title so saved records are easier to identify later.
+- **Stop session:** end the active session and persist its metadata. You can start another session afterward.
+
+### Export
+
+Export saves the current session's transcripts and metadata to disk for later review.
+
+Use `backend/exporter.py` from the UI or backend layer. Supported formats:
+
+- **JSON:** structured transcripts and session metadata
+- **CSV:** flattened transcript rows for spreadsheet review
+
+Example paths you can pass to export:
+
+```powershell
+backend\exports\session.json
+backend\exports\session.csv
+```
+
+> If export is not available in your build, the Export action is hidden automatically.
 
 ## Microphone vs system audio
 
@@ -57,7 +85,7 @@ If the app cannot find a loopback device:
 2. Go to the **Recording** tab.
 3. Enable **Stereo Mix** or the equivalent loopback device.
 4. Press **Set as default device** if required.
-5. If the name doesn’t match the default `DEVICE_NAME_SUBSTR`, edit `backend\config.py` to match a substring of the enabled recording device name.
+5. If the name doesn't match the default `DEVICE_NAME_SUBSTR`, edit `backend\config.py` to match a substring of the enabled recording device name.
 6. Restart the app.
 
 If Stereo Mix is hidden:
@@ -94,7 +122,7 @@ python scripts\download_models.py
 ```
 
 What gets downloaded:
-- `models\llama-2-7b-chat.Q4_K_M.gguf` (~4.1GB)
+- `backend\models\llama-2-7b-chat.Q4_K_M.gguf` (~4.1GB)
 - Whisper `small` model on first transcription (auto-cached)
 
 Re-run the script if the LLM file is missing or truncated.

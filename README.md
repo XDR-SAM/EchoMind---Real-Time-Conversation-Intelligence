@@ -50,9 +50,9 @@ Developed by **Sami**.
 
 ## 📸 Screenshots / Assets
 
-![EchoMind overlay layout](assets/docs/arch.png)
+![EchoMind overlay layout](assets/docs/screenshot.png)
 
-> **Maintainer note:** replace `assets/docs/arch.png` with an actual app screenshot from the overlay UI.
+> Representative app screenshot showing the working session overlay, sidebar navigation, copilot chat, and live transcript bar using project design tokens.
 
 ---
 
@@ -98,20 +98,20 @@ cd real-time-ai-copilot
 
 # 2. Create virtualenv
 python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 
 # 3. Install dependencies
 python -m pip install --upgrade pip
 pip install -r requirements_windows.txt
 
 # 4. Download models
-python scripts\\download_models.py
+python scripts\download_models.py
 
 # 5. Add your context docs (optional)
-# Drop files into backend\\docs_ingested\\
+# Drop files into backend\docs_ingested\
 
 # 6. Run
-python scripts\\run.py
+python scripts\run.py
 ```
 
 > **Whisper model caching:** `faster-whisper` downloads the `small` model to the OS cache automatically on first run.
@@ -129,7 +129,7 @@ EchoMind uses two local model categories:
 ### Auto download
 
 ```powershell
-python scripts\\download_models.py
+python scripts\download_models.py
 ```
 
 This saves the GGUF file to:
