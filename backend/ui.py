@@ -173,27 +173,60 @@ class OverlayWindow(QFrame):
             #OverlayWindow {{
                 background:{background};
                 color:{foreground};
-                border:1px solid rgba(255,255,255,0.06); border-radius:14px;
+                border:1px solid rgba(241,245,250,0.08); border-radius:16px;
+            }}
+            QFrame#OverlayWindow {{
+                background:{background};
+                color:{foreground};
             }}
             QPushButton {{
                 background:#1f2937; color:{foreground};
-                border:1px solid #374151; border-radius:8px; padding:6px 12px;
+                border:1px solid rgba(241,245,250,0.08); border-radius:10px;
+                padding:7px 14px; min-width:88px;
+                font-family:"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif;
+                font-size:10.5pt;
             }}
-            QPushButton:hover {{ background:#334155; }}
-            QPushButton:pressed {{ background:#0f172a; }}
+            QPushButton:hover {-background:#334155; }
+            QPushButton:pressed {{ background:#0B132B; }}
+            QPushButton:hover {{
+                background:#2563EB; border-color:#2563EB; color:#FFFFFF;
+            }}
+            QPushButton:pressed {{
+                background:#1D4ED8; border-color:#1D4ED8; color:#FFFFFF;
+            }}
+            QPushButton:disabled {{
+                background:#1f2937; color:#94a3b8;
+                border:1px solid rgba(241,245,250,0.08);
+            }}
             QPushButton[variant="destructive"] {{
                 background:#7f1d1d; border:1px solid #991b1b;
             }}
-            QPushButton[variant="destructive"]:hover {{ background:#991b1b; }}
+            QPushButton[variant="destructive"]:hover {{ background:#991b1b; border-color:#B91C1C; color:#FEE2E2; }}
+            QPushButton[variant="destructive"]:pressed {{
+                background:#B91C1C; border-color:#DC2626; color:#FFFFFF;
+            }}
             QCheckBox {{ color:#cbd5e1; spacing:8px; }}
             QCheckBox::indicator {{ width:18px; height:18px; border-radius:4px; }}
             QCheckBox::indicator:hover {{ border:1px solid #94a3b8; }}
             QTextEdit {{
                 background:#0b1220; color:{foreground};
-                border:1px solid #1f2937; border-radius:10px;
+                border:1px solid rgba(241,245,250,0.08); border-radius:12px; padding:10px;
+                selection-background-color:#2563EB; selection-color:#FFFFFF;
+                font-family:"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif;
+                font-size:11.5pt;
             }}
             QLabel {{
                 background:transparent;
+            }}
+            QLabel:disabled {{
+                color:#94a3b8;
+            }}
+            #MinimizeWindowToTrayButton {{
+                background:transparent; color:#cbd5e1; border:none;
+                min-width:28px; max-width:28px; padding:4px;
+            }}
+            #MinimizeWindowToTrayButton:hover {{
+                color:#FFC72C; background:transparent;
             }}
             """
         )

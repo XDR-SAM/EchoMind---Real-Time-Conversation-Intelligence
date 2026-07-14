@@ -284,65 +284,25 @@ def main(argv: Optional[list[str]] = None) -> int:
         audio, transcriber, context_engine, llm_engine, ui_queue, EnergyVAD()
     )
 
-    # Wrap the pipeline worker to collect metrics without modifying pipeline.py.
-    original_worker: Callable[[], None] = pipeline._worker  # type: ignore[attr-defined]
-
-    def instrumented_worker() -> None:
-        try:
-            while not pipeline._stop.is_set():  # type: ignore[attr-defined]
-                chunk = audio.read()
-                if chunk is None:
-                    time.sleep(0.03)
-                    continue
-                metrics.audio_chunks += 1
-                if not bool(pipeline.vad(chunk)):  # type: ignore[attr-defined]
-                    continue
-                try:
-                    text, lang = transcriber.transcribe(chunk)
-                    metrics.stt_calls += 1
-                except Exception as exc:
-                    LOG.debug("STT failed: %s", exc)
-                    metrics.errors += 1
-                    continue
-                text = (text or "").strip()
-                if not text:
-                    continue
-                pipeline.latest_lang = lang or pipeline.latest_lang  # type: ignore[attr-defined]
-                pipeline.transcript_buffer.append(text)  # type: ignore[attr-defined]
-                window_text = " ".join(pipeline.transcript_buffer[-12:])[-1500:]  # type: ignore[attr-defined]
-                try:
-                    context_text = context_engine.search(window_text)
-                    metrics.rag_calls += 1
-                except Exception as exc:
-                    LOG.debug("RAG search failed: %s", exc)
-                    context_text = ""
-                    metrics.errors += 1
-                prompt = pipeline._build_prompt(window_text, context_text)  # type: ignore[attr-defined]
-                try:
-                    suggestion = llm_engine.suggest(prompt, max_tokens=220, temperature=0.15)
-                    metrics.llm_calls += 1
-                except Exception as exc:
-                    LOG.debug("LLM suggest failed: %s", exc)
-                    suggestion = ""
-                    metrics.errors += 1
-                try:
-                    ui_queue.put_nowait(
-                        {
-                            "transcript": window_text,
-                            "suggestion": suggestion,
-                            "lang": pipeline.latest_lang,  # type: ignore[attr-defined]
-                        }
-                    )
-                    metrics.ui_dispatched += 1
-                except Exception as exc:
-                    LOG.debug("UI dispatch failed: %s", exc)
-        finally:
-            pipeline._stop.set()  # type: ignore[attr-defined]
-
-    pipeline._worker = instrumented_worker  # type: ignore[attr-defined]
     pipeline.start()
 
+    def _collect_ui_metrics() -> None:
+        try:
+            metrics.ui_dispatched += ui_queue.qsize()
+        except Exception:
+            pass
+        while True:
+            try:
+                ui_queue.get_nowait()
+            except __import__("queue").Empty:
+                break
+
+    ui_timer = QTimer()
+    ui_timer.timeout.connect(_collect_ui_metrics)
+    ui_timer.start(500)
+
     def shutdown() -> None:
+        ui_timer.stop()
         _shutdown(app, pipeline, audio, transcriber, llm_engine, window, metrics)
 
     import atexit

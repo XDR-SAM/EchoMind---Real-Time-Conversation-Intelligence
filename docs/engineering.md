@@ -17,4 +17,5 @@
 ## 3. Known tradeoffs
 - Energy VAD is lightweight; replace with Silero VAD if precision requirements increase.
 - FAISS CPU is acceptable for <20k chunks; switch to `faiss-gpu` if index grows.
-- Overlay uses PyQt WebEngine for future expandability; plain QWidget is also acceptable.
+- Overlay uses a plain PyQt `QFrame` widget; there is no WebEngine dependency.
+- FAISS CPU is acceptable for <20k chunks; switch to `faiss-gpu` if index grows and you have CUDA available.
