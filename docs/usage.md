@@ -6,7 +6,8 @@ How to launch, control, and operate EchoMind on Windows.
 
 After installation and model download, make sure:
 
-- [ ] `backend\models\llama-2-7b-chat.Q4_K_M.gguf` exists and is roughly 4GB
+- [ ] `backend\models\NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` exists and is roughly 2.7GB
+- [ ] API provider `.env` set if using `LLM_BACKEND=openai_compat`
 - [ ] `backend\docs_ingested\` exists
 - [ ] Windows recording device matching `DEVICE_NAME_SUBSTR` is present
 - [ ] Optional: `python backend\main.py --benchmark` passes
@@ -113,19 +114,23 @@ If Stereo Mix is hidden:
 - **Unpin**: lets the overlay sit behind full-screen apps. Unpin before gaming or full-screen presentation.
 - The pin state is per-session; reopening the overlay starts pinned by default.
 
-## Model download workflow
+## Model path
 
-Run once before first start:
+### Local GGUF mode
 
 ```powershell
 python scripts\download_models.py
 ```
 
 What gets downloaded:
-- `backend\models\llama-2-7b-chat.Q4_K_M.gguf` (~4.1GB)
+- `backend\models\NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf`
 - Whisper `small` model on first transcription (auto-cached)
 
 Re-run the script if the LLM file is missing or truncated.
+
+### API provider mode
+
+Skip local download. Instead configure `.env` with `LLM_BACKEND=openai_compat` and your provider settings. See `docs/installation.md` for the end-to-end setup.
 
 ## Docs ingestion workflow
 

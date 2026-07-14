@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 MODELS = {
-    "llm": "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf",
+    "llm": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF/resolve/main/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
     "whisper": "small",
 }
 
@@ -46,14 +46,14 @@ def download_file(url: str, target: Path):
 
 
 def main():
-    root = Path(__file__).resolve().parent.parent / "backend"
-    models_dir = root.parent / "models"
+    root = Path(__file__).resolve().parent
+    models_dir = root / "models"
     models_dir.mkdir(exist_ok=True)
 
     # Faster-Whisper downloads models automatically.
     print(f"Whisper model: {MODELS['whisper']}. Faster-whisper will cache it.")
 
-    llm_path = models_dir / "llama-2-7b-chat.Q4_K_M.gguf"
+    llm_path = models_dir / "NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf"
     if not llm_path.exists() or llm_path.stat().st_size < 10_000_000:
         download_file(MODELS["llm"], llm_path)
     else:

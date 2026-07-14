@@ -61,16 +61,14 @@ If the `llama-cpp-python` CUDA wheel is unavailable for your Python version, rep
 pip install llama-cpp-python==0.2.90
 ```
 
-### CPU-only fallback
+### API provider mode (no local LLM download)
 
-If you don't have an NVIDIA GPU or CUDA wheels fail:
+If you run against an OpenAI-compatible API instead of a local GGUF model, you still need STT and backend dependencies, and `.env` must provide the endpoint auth:
 
 ```powershell
 python -m pip install --upgrade pip
-pip install torch==2.3.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cpu
-pip install ctranslate2
+pip install torch==2.3.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 pip install faster-whisper==1.0.3
-pip install llama-cpp-python==0.2.90
 pip install soundcard==0.4.0
 pip install numpy==1.26.4 scipy==1.13.1
 pip install PyQt6==6.6.1 PyQt6-WebKit==6.6.0
@@ -79,48 +77,34 @@ pip install sentence-transformers==2.7.0
 pip install faiss-cpu==1.8.0
 ```
 
-> **Python version note:** use Python 3.10 or 3.11. Some CUDA wheels are less reliable on 3.12+ for this stack.
+Do **not** install `llama-cpp-python` in this mode. Use `requirements_windows.txt` only if you intend to run local inference.
+
+> **Model download note:** in API provider mode, skip the local model download step in Section 6. Configure `.env` instead.
 
 ## 5) Verify imports
 
-Quick health check before loading models:
+Quick health check before loading models/provider:
 
 ```powershell
-python -c "import faster_whisper, llama_cpp, soundcard, torch, PyQt6; print('imports ok')"
+python -c "import faster_whisper, soundcard, torch, PyQt6; print('imports ok')"
 ```
 
 If `soundcard` fails, review your Windows recording devices and Stereo Mix status.
 
-## 6) Download models
+## 6) Configure provider mode
 
-The app needs two model categories:
+Create `.env` in the repo root with provider settings, and skip the local model download step:
 
-1. **LLM:** `llama-2-7b-chat.Q4_K_M.gguf`
-2. **Whisper:** `small` model via `faster-whisper` (auto-cached)
-
-Download with:
-
-```powershell
-python scripts\download_models.py
+```env
+LLM_BACKEND=openai_compat
+OPENAI_API_BASE=http://localhost:1234/v1
+OPENAI_API_KEY=lm-studio
+OPENAI_MODEL=nvidia-nemotron-3-nano-4b-instruct
+TRANSCRIBE_DEVICE=cuda
+TRANSCRIBE_COMPUTE_TYPE=float16
 ```
 
-This saves the GGUF file to:
-
-- `backend\models\llama-2-7b-chat.Q4_K_M.gguf`
-
-You can also fetch the GGUF directly:
-
-```powershell
-powershell -Command "Invoke-WebRequest -Uri 'https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf' -OutFile 'backend\models\llama-2-7b-chat.Q4_K_M.gguf'"
-```
-
-Or with `curl`:
-
-```powershell
-curl -L "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf" -o backend\models\llama-2-7b-chat.Q4_K_M.gguf
-```
-
-Whisper's `small` model downloads automatically on first run (~500MB) into the Hugging Face cache under `%USERPROFILE%\.cache\huggingface\hub\`.
+This sends LLM requests to an OpenAI-compatible backend such as LM Studio, Ollama, or a hosted API. `OPENAI_API_BASE` and `OPENAI_MODEL` are the main knobs; update them to match your provider.
 
 ## 7) Add context documents
 
@@ -143,12 +127,10 @@ python backend\main.py --benchmark
 
 Expected outcome:
 - A startup report printing compute mode (`CUDA` or `CPU`)
-- LLM model path and size
+- Provider mode vs local model mode
 - Benchmark latencies for STT, RAG, and LLM
-
-If the model file is missing, the launcher exits cleanly with a hint to run `scripts\download_models.py`.
 
 ## What's next
 
-- See **docs/usage.md** for first-run behavior, controls, session naming, export, and tray behavior.
-- See **docs/deployment.md** for configuration reference, upgrade paths, and troubleshooting.
+- See **docs/usage.md** for first-run behavior, controls, session naming, export, tray behavior, and provider-mode operation.
+- See **docs/deployment.md** for configuration reference, provider setup, CPU/CUDA tuning, upgrade paths, and troubleshooting.

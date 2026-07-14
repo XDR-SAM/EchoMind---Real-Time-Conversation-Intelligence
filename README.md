@@ -22,6 +22,7 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
   <a href="#usage">Usage</a> ·
   <a href="#performance">Performance</a> ·
   <a href="#project-structure">Structure</a> ·
+  <a href="#openai-compatible-providers">OpenAI Providers</a> ·
   <a href="#docker">Docker</a> ·
   <a href="#contributing">Contributing</a> ·
   <a href="#license">License</a>
@@ -44,7 +45,7 @@ Developed by **Sami**.
 - **Live system audio transcription** — WASAPI loopback with `soundcard`, works with meeting apps, browser tabs, and music.
 - **Bangla + English + mixed speech** — Faster-Whisper `small` for strong code-switching accuracy.
 - **RAG over your documents** — drop `.txt` / `.md` / `.csv` into `backend/docs_ingested/`, FAISS + `all-MiniLM-L6-v2` does the rest.
-- **Real-time AI suggestions** — Llama 2 7B Chat Q4_K_M via `llama-cpp-python`, GPU offloaded when possible.
+- **Real-time AI suggestions** — default local inference with NVIDIA Nemotron 3 Nano 4B via `llama-cpp-python`, or OpenAI-compatible provider mode for LM Studio/Ollama/cloud backends when needed.
 - **Always-on-top overlay** — draggable PyQt6 window + system tray.
 - **Privacy-first** — inference is local. No telemetry, no cloud model calls by default.
 
@@ -69,7 +70,7 @@ graph TD
     D --> E["🧠 Faster-Whisper small<br/>transcribe: text + language"]
     E --> F["📝 Rolling Transcript Buffer<br/>context capped @ 1200 chars"]
     F --> G["🔍 Context Engine<br/>Sentence-Transformers + FAISS"]
-    F --> H["🧠 Llama-2-7B-Chat Q4 K_M<br/>llama-cpp GPU layers"]
+    F --> H["🧠 NVIDIA-Nemotron-3-Nano-4B<br/>NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf llama-cpp GPU layers"]
     G --> H
     H --> I{"Validation"}
     I -->|Pass| J["📋 Bounded UI Update"]
@@ -86,7 +87,7 @@ graph TD
 3. 2-second chunks go through `faster-whisper small` for transcription + language detection.
 4. The transcript is stored in a rolling buffer.
 5. Every chunk, the prompt is enriched with retrieved context from your local docs (FAISS).
-6. Llama 2 7B Chat generates a single bounded suggestion.
+6. The LLM generates a single bounded suggestion, either with local `llama-cpp-python` or via an OpenAI-compatible provider if configured.
 7. The PyQt6 overlay receives the update, keeping the chat lightweight.
 
 ---
@@ -125,7 +126,7 @@ python scripts\run.py
 
 EchoMind uses two local model categories:
 
-1. **LLM:** `llama-2-7b-chat.Q4_K_M.gguf` via `llama-cpp-python`
+1. **LLM:** `NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` via `llama-cpp-python` **or** any OpenAI-compatible local provider like LM Studio/Ollama
 2. **Whisper:** `small` model for speech-to-text via `faster-whisper`
 
 ### Auto download
@@ -153,9 +154,110 @@ This saves the GGUF file to:
 
 ---
 
-## ⚙️ Configuration
+## 🌐 OpenAI-Compatible Provider Support
 
-All runtime settings live in `backend/config.py` and can be overridden with `.env`.
+EchoMind's LLM layer supports both local GGUF inference and any OpenAI-compatible HTTP backend.
+
+### Backends
+
+| Backend | Typical base URL | Notes |
+|---|---|---|
+| **LM Studio** | `http://localhost:1234/v1` | Enable the local server; default port is `1234`. |
+| **Ollama** | `http://localhost:11434/v1` | Requires Ollama 0.1.26+ for OpenAI-compatible endpoints. |
+| **OpenAI** | `https://api.openai.com/v1` | Works if you accept cloud billing for meeting suggestions. |
+| **Custom** | your server `/v1` | Must implement chat completions. |
+
+### Switch backend
+
+Use **one** of these methods:
+
+1. Edit `backend/config.py`
+2. Create `.env` in `backend/`
+
+Required keys for an OpenAI-compatible backend:
+
+```ini
+LLM_BACKEND=openai_compat
+OPENAI_API_BASE=http://localhost:1234/v1
+OPENAI_API_KEY=lm-studio
+OPENAI_MODEL=nvidia-nemotron-3-nano-4b-instruct
+```
+
+> **Windows note:** `OPENAI_API_BASE` should usually end with `/v1`. If your tool exposes CORS/HTTPS locally, use matching scheme/port.
+
+### Example: LM Studio on Windows
+
+1. Open LM Studio → Load `NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf`.
+2. Start the local server from the LM Studio chat/server panel.
+3. Confirm it replies on `http://localhost:1234/v1`.
+4. Start EchoMind.
+
+PowerShell quick check:
+
+```powershell
+Invoke-Rest -Uri http://localhost:1234/v1/chat/completions -Method Post -ContentType application/json -Body '{"model":"nvidia-nemotron-3-nano-4b-instruct","messages":[{"role":"user","content":"ping"}]}'
+```
+
+### Example: Ollama on Windows
+
+1. Install Ollama and pull a visible chat model, for example:
+
+```powershell
+ollama pull llama3.1:8b-instruct-q4_K_M
+```
+
+2. Start Ollama so the OpenAI-compatible endpoint is enabled.
+3. Set config:
+
+```ini
+LLM_BACKEND=openai_compat
+OPENAI_API_BASE=http://localhost:11434/v1
+OPENAI_API_KEY=ollama
+OPENAI_MODEL=llama3.1:8b-instruct-q4_K_M
+```
+
+4. Verify with PowerShell:
+
+```powershell
+Invoke-Rest -Uri http://localhost:11434/v1/chat/completions -Method Post -ContentType application/json -Body '{"model":"llama3.1:8b-instruct-q4_K_M","messages":[{"role":"user","content":"ping"}]}'
+```
+
+### Example: OpenAI cloud
+
+```ini
+LLM_BACKEND=openai_compat
+OPENAI_API_BASE=https://api.openai.com/v1
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+Use this only if you are comfortable with cloud inference; the project's default privacy posture is local-first.
+
+### curl alternative
+
+If PowerShell REST behavior causes issues, use curl:
+
+```powershell
+curl http://localhost:1234/v1/chat/completions -H "Content-Type: application/json" -d "{ \"model\": \"nvidia-nemotron-3-nano-4b-instruct\", \"messages\": [{\"role\":\"user\",\"content\":\"ping\"}] }"
+```
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Connection refused | Confirm the provider server is running and `OPENAI_API_BASE` port matches. |
+| 401/403 | Check `OPENAI_API_KEY`; LM Studio accepts `lm-studio` by default. |
+| Model not found | Set `OPENAI_MODEL` to the exact loaded model identifier, not just the filename. |
+| Cloud latency too high | Prefer local/network providers; the app expects fast response times for streaming suggestions. |
+| Provider returns HTML/status page | You likely hit a UI route instead of `/v1/chat/completions`; check the base URL. |
+
+### Notes
+
+- `backend/llm_engine.py` sends a single user message and expects standard `chat/completions` output.
+- This path is intentionally simple: if your provider works with OpenAI-style chat completions, it should work here.
+- On machines where `llama-cpp-python` cannot install, this provider mode is the practical escape hatch for continuing development/testing.
+
+## ⚙️ Configuration
 
 ```python
 MODEL_NAME: str = "small"              # tiny | small | base | medium.en
@@ -205,7 +307,7 @@ OVERLAY_HEIGHT: int = 420
 | **CUDA OOM** | Lower `LLM_GPU_LAYERS` in `config.py`, or run STT on CPU. |
 | **Whisper slow transcription on CPU** | Use `MODEL_NAME="tiny"`, or switch to `small.en` if mostly English. |
 | **Poor Bangla transcription** | Use at least `MODEL_NAME="small"`. `tiny` struggles with Bangla morphology. |
-| **No suggestions generated** | Confirm `models/llama-2-7b-chat.Q4_K_M.gguf` exists and is fully downloaded. |
+| **No suggestions generated** | Confirm `models/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` exists and is fully downloaded. |
 | **Overlay blurry** | Set display scaling to `100%`, restart app. |
 | **Tray icon missing** | This is a PyQt6 app; some minimal Linux DEs hide tray icons. |
 

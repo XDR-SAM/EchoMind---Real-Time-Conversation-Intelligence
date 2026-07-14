@@ -1,7 +1,7 @@
-# Gap Analysis — Real-Time AI Copilot (EchoMind)
+## Gap Analysis — Real-Time AI Copilot (EchoMind)
 
 Audited codebase: `G:\hermes-files\real-time-ai-copilot`
-Stack: Python 3.10/3.11, PyQt6, faster-whisper, llama-cpp-python, FAISS, soundcard
+Stack: Python 3.10/3.11, PyQt6, faster-whisper, llama-cpp-python, FAISS, soundcard, OpenAI-compatible LLM provider mode supported via `LLM_BACKEND=openai_compat`
 Target competitive set: Otter.ai, Fireflies.ai, Tactiq, Grain, Krisp
 This report focuses on missing capabilities against those products, ranked by likely user/customer impact.
 
@@ -158,12 +158,15 @@ All gaps above should be addressed within the current Python 3.11 / PyQt6 stack 
 | Phase | Focus | Gaps addressed |
 |---|---|---|
 | Phase 1 | Session and transcript persistence, export formats | 1, 4 |
+| Phase 1 | LLM provider-mode support completion | provider mode already implemented |
 | Phase 2 | Action-item extraction and summary | 2 |
 | Phase 3 | Diarization and session metadata | 3, 6 |
-| Phase 4 | Calendar/context and extension surface | 5, 8 |
-| Phase 5 | Platform packaging, analytics, privacy hardening | 6, 7, 9 |
+| Phase 4 | Calendar/context and extension surface | 5, 7, 8 |
+| Phase 5 | Platform packaging, analytics, privacy hardening | 6, 8, 9 |
 
-## Metrics for success
+## Completion note
+
+- LLM API provider mode is already implemented via `LLM_BACKEND=openai_compat` with editable `.env` settings for endpoint, key, and model. This closes the previously noted “offline-only / no hosted provider” gap without adding new dependencies or a server database.
 - Session retrieval time < 2 seconds for last 30 days.
 - Suggestion latency unchanged: < 1.2s end-to-end.
 - Action-item precision/recall measured offline against annotated meeting corpus before shipping.

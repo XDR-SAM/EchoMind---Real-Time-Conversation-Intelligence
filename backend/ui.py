@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSystemTrayIcon,
     QTextEdit,
@@ -71,6 +72,7 @@ class OverlayWindow(QFrame):
         self.transcript_snapshots: deque[str] = deque(maxlen=12)
         self._last_displayed_transcript = ""
         self._last_displayed_suggestion = ""
+        self.session_mgr = None
 
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._drain_queue)
@@ -106,6 +108,23 @@ class OverlayWindow(QFrame):
         self.suggestion_label.setAccessibleName("Suggestion")
         root.addWidget(self.suggestion_label)
 
+        session_controls = QHBoxLayout()
+        self.session_name_input = QLineEdit()
+        self.session_name_input.setPlaceholderText("Session name")
+        self.session_name_input.setAccessibleName("Session name")
+        session_controls.addWidget(self.session_name_input)
+
+        self.start_button = QPushButton("Start")
+        self.start_button.setAccessibleName("Start session")
+        session_controls.addWidget(self.start_button)
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.setAccessibleName("Stop session")
+        session_controls.addWidget(self.stop_button)
+        self.export_button = QPushButton("Export")
+        self.export_button.setAccessibleName("Export session")
+        session_controls.addWidget(self.export_button)
+        root.addLayout(session_controls)
+
         controls = QHBoxLayout()
         self.pin_button = QPushButton("Unpin")
         self.pin_button.setAccessibleName("Pin toggle")
@@ -135,6 +154,9 @@ class OverlayWindow(QFrame):
             self._tray.setToolTip("Meeting Copilot")
             self._tray.show()
         self.close_button.clicked.connect(self._on_close_requested)
+        self.start_button.clicked.connect(self._on_start_requested)
+        self.stop_button.clicked.connect(self._on_stop_requested)
+        self.export_button.clicked.connect(self._on_export_requested)
 
     def _on_close_requested(self):
         if _TRAY_AVAILABLE and self._tray is not None:
@@ -265,3 +287,48 @@ class OverlayWindow(QFrame):
 
         if lang:
             self.title_label.setText(f"Meeting Copilot · {lang}")
+
+    # -------------- Session controls --------------
+
+    def _get_session_mgr(self):
+        return getattr(self, "session_mgr", None)
+
+    def _update_session_buttons(self, active: bool) -> None:
+        self.start_button.setEnabled(not active)
+        self.stop_button.setEnabled(active)
+        self.export_button.setEnabled(active)
+
+    def _on_start_requested(self) -> None:
+        mgr = self._get_session_mgr()
+        if mgr is None:
+            return
+        title = self.session_name_input.text().strip() or "Untitled session"
+        try:
+            mgr.start(title=title)
+        except Exception:
+            return
+        self._update_session_buttons(True)
+
+    def _on_stop_requested(self) -> None:
+        mgr = self._get_session_mgr()
+        if mgr is None:
+            return
+        try:
+            mgr.stop()
+        except Exception:
+            pass
+        self._update_session_buttons(False)
+
+    def _on_export_requested(self) -> None:
+        mgr = self._get_session_mgr()
+        if mgr is None:
+            return
+        transcripts = [self.transcript_view.toPlainText()]
+        fmt = "json"
+        try:
+            from backend.exporter import export_session
+            from pathlib import Path
+            out = Path(__file__).resolve().parent.parent / "exports" / "session.json"
+            export_session(out, transcripts, fmt=fmt)
+        except Exception:
+            pass

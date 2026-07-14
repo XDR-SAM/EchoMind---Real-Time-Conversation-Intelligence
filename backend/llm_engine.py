@@ -2,10 +2,10 @@
 Structured prompt assembly and guarded local LLM inference for inline meeting suggestions.
 
 Optimized for low-latency completion on:
-- Model: llama-2-7b-chat
-- Quant: Q4_K_M
-- Context: 2k tokens max
-- Hardware: RTX 2060 6GB or CPU fallback
+|- Model: NVIDIA-Nemotron-3-Nano-4B
+|- Quant: Q4_K_M
+|- Context: 2k tokens max
+|- Hardware: RTX 2060 6GB or CPU fallback
 
 Design goals:
 - Keep transcript context first, retrieved docs second, inference input last.
@@ -102,21 +102,57 @@ def apply_suggestion_guardrails(text: str, max_chars: int = 800) -> str:
 
 
 class LLMEngine:
-    """Wrapper around local LLM inference with guarded output contract."""
+    """Wrapper around local or OpenAI-compatible inference with guarded output contract."""
 
     def __init__(self, model_path: str, n_ctx: int = 2048, n_gpu_layers: int = 35) -> None:
-        try:
-            from llama_cpp import Llama  # noqa: F811
+        self._backend = getattr(settings, "LLM_BACKEND", "local")
+        self._model_path = model_path
+        self._n_ctx = n_ctx
+        self._n_gpu_layers = n_gpu_layers
+        self._model = None
+        if self._backend != "openai_compat":
+            try:
+                from llama_cpp import Llama  # noqa: F811
+                self._model = Llama(
+                    model_path=model_path,
+                    n_ctx=n_ctx,
+                    n_gpu_layers=n_gpu_layers,
+                    verbose=False,
+                )
+            except Exception as exc:
+                LOG.error("LLM init failed: %s", exc)
+                raise RuntimeError(f"llm_init_failed:{exc}") from exc
 
-            self._model = Llama(
-                model_path=model_path,
-                n_ctx=n_ctx,
-                n_gpu_layers=n_gpu_layers,
-                verbose=False,
-            )
-        except Exception as exc:
-            LOG.error("LLM init failed: %s", exc)
-            raise RuntimeError(f"llm_init_failed:{exc}") from exc
+    def _openai_chat(self, prompt: str, generation_kwargs: dict | None = None) -> str:
+        api_base = getattr(settings, "OPENAI_API_BASE", "http://localhost:1234/v1").rstrip("/")
+        api_key = getattr(settings, "OPENAI_API_KEY", "lm-studio") or "lm-studio"
+        model = getattr(settings, "OPENAI_MODEL", "")
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        messages = [{"role": "user", "content": prompt}]
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.15,
+            "max_tokens": 220,
+        }
+        if generation_kwargs:
+            payload.update(generation_kwargs)
+        from urllib.request import Request, urlopen
+        from urllib.error import URLError, HTTPError
+        import json as _json
+        data = _json.dumps(payload).encode("utf-8")
+        req = Request(f"{api_base}/chat/completions", data=data, headers=headers, method="POST")
+        try:
+            with urlopen(req, timeout=120) as resp:
+                body = _json.loads(resp.read().decode("utf-8"))
+        except HTTPError as exc:
+            raise RuntimeError(f"openai_http_error:{exc.code}:{exc.reason}") from exc
+        except URLError as exc:
+            raise RuntimeError(f"openai_url_error:{exc.reason}") from exc
+        choices = body.get("choices") or []
+        if not choices:
+            return ""
+        return (choices[0].get("message") or {}).get("content") or ""
 
     def suggest_structured(
         self,
@@ -128,27 +164,32 @@ class LLMEngine:
         prompt = _build_suggest_prompt(
             transcript=transcript, docs=docs, current=current
         )
-        stop_tokens = ["User:", "\nUser", "Assistant:"]
-        gen = {
-            "max_tokens": 220,
-            "temperature": 0.15,
-            "stop": stop_tokens,
-        }
-        if generation_kwargs:
-            gen.update(generation_kwargs)
+        raw_text = ""
+        token_count = 0
         try:
-            result = self._model(prompt, **gen)
+            if self._backend == "openai_compat":
+                raw_text = self._openai_chat(prompt, generation_kwargs)
+                token_count = len(prompt.split())
+            else:
+                stop_tokens = ["User:", "\nUser", "Assistant:"]
+                gen = {
+                    "max_tokens": 220,
+                    "temperature": 0.15,
+                    "stop": stop_tokens,
+                }
+                if generation_kwargs:
+                    gen.update(generation_kwargs)
+                result = self._model(prompt, **gen)
+                choices = result.get("choices") or []
+                if choices:
+                    raw_text = (choices[0].get("text") or "").strip()
+                usage = result.get("usage") or {}
+                token_count = int(usage.get("total_tokens") or len(prompt.split()))
         except Exception as exc:
             LOG.warning("LLM inference failed: %s", exc)
             return LLMSuggestion(text="", source="fallback")
 
-        choices = result.get("choices") or []
-        raw_text = ""
-        if choices:
-            raw_text = (choices[0].get("text") or "").strip()
         text = apply_suggestion_guardrails(raw_text)
-        usage = result.get("usage") or {}
-        token_count = int(usage.get("total_tokens") or len(prompt.split()))
         return LLMSuggestion(text=text, token_count=token_count, source="llm")
 
     def suggest(
@@ -169,23 +210,26 @@ class LLMEngine:
         generation_kwargs: dict | None = None,
     ) -> list[ActionItem]:
         prompt = _build_action_prompt(transcript)
-        stop_tokens = ["User:", "\nUser", "Assistant:"]
-        gen = {
-            "max_tokens": 160,
-            "temperature": 0.0,
-            "stop": stop_tokens,
-        }
-        if generation_kwargs:
-            gen.update(generation_kwargs)
         try:
-            result = self._model(prompt, **gen)
+            if self._backend == "openai_compat":
+                raw_text = self._openai_chat(prompt, generation_kwargs)
+            else:
+                stop_tokens = ["User:", "\nUser", "Assistant:"]
+                gen = {
+                    "max_tokens": 160,
+                    "temperature": 0.0,
+                    "stop": stop_tokens,
+                }
+                if generation_kwargs:
+                    gen.update(generation_kwargs)
+                result = self._model(prompt, **gen)
+                choices = result.get("choices") or []
+                raw_text = ""
+                if choices:
+                    raw_text = (choices[0].get("text") or "").strip()
         except Exception as exc:
             LOG.warning("LLM action item extraction failed: %s", exc)
             return []
-        choices = result.get("choices") or []
-        raw_text = ""
-        if choices:
-            raw_text = (choices[0].get("text") or "").strip()
         if not raw_text:
             return []
         try:

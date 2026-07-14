@@ -18,6 +18,8 @@ from backend.context_engine import ContextEngine
 from backend.llm_engine import LLMEngine
 from backend.transcriber import Transcriber
 from backend.vad import EnergyVAD
+from backend.session import SessionManager
+from backend.session_store import init_db
 
 LOG = logging.getLogger("main")
 _MIN_MODEL_SIZE = 10_000_000  # 10 MB
@@ -175,7 +177,7 @@ def _run_benchmark(cuda: bool) -> int:
 
 
 def _shutdown(
-    app, pipeline, audio, transcriber, llm_engine, window, metrics: Metrics
+    app, pipeline, audio, transcriber, llm_engine, window, session_mgr, metrics: Metrics
 ) -> None:
     """Import-safe shutdown sequence."""
     report = metrics.report()
@@ -187,6 +189,7 @@ def _shutdown(
         getattr(transcriber, "close", None),
         getattr(llm_engine, "close", None),
         getattr(window, "close", None),
+        getattr(session_mgr, "shutdown", None),
     ):
         try:
             if cleanup is not None:
@@ -233,10 +236,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     app.setQuitOnLastWindowClosed(False)
     ui_queue: Queue = Queue(maxsize=12)
 
+    metrics = Metrics()
+    session_db = init_db(Path.cwd() / "data" / "sessions.db")
+    session_mgr = SessionManager(
+        db_path=session_db, source_device=settings.DEVICE_NAME_SUBSTR
+    )
+
     try:
         from backend.ui import OverlayWindow
 
         window = OverlayWindow(ui_queue)
+        window.session_mgr = session_mgr
         window.show()
     except Exception as exc:
         print(f"Fatal: UI initialization failed: {exc}")
@@ -245,8 +255,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         except Exception:
             pass
         return 1
-
-    metrics = Metrics()
 
     try:
         audio = AudioCapture(
@@ -281,7 +289,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     from backend.pipeline import Pipeline
 
     pipeline = Pipeline(
-        audio, transcriber, context_engine, llm_engine, ui_queue, EnergyVAD()
+        audio,
+        transcriber,
+        context_engine,
+        llm_engine,
+        ui_queue,
+        EnergyVAD(),
+        session_mgr=session_mgr,
     )
 
     pipeline.start()
@@ -303,7 +317,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     def shutdown() -> None:
         ui_timer.stop()
-        _shutdown(app, pipeline, audio, transcriber, llm_engine, window, metrics)
+        _shutdown(app, pipeline, audio, transcriber, llm_engine, window, session_mgr, metrics)
 
     import atexit
 

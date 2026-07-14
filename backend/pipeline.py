@@ -53,6 +53,7 @@ class Pipeline:
         llm_engine: object,
         ui_queue: Queue,
         vad: object | None = None,
+        session_mgr: object | None = None,
     ) -> None:
         self.audio = audio
         self.transcriber = transcriber
@@ -60,6 +61,7 @@ class Pipeline:
         self.llm = llm_engine
         self.ui_queue = ui_queue
         self.vad: object = vad
+        self.session_mgr = session_mgr
 
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -156,6 +158,15 @@ class Pipeline:
         state.phase = "emit"
         self._run_emit_phase(state)
         state.phase = "ready"
+
+        if state.transcript_window:
+            try:
+                mgr = self.session_mgr
+                if mgr is not None and hasattr(mgr, "record_chunk"):
+                    mgr.record_chunk(state.transcript_window, state.latest_lang)
+            except Exception:
+                pass
+
         return state
 
     def _worker(self) -> None:

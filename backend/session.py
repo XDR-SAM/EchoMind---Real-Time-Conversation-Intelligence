@@ -25,13 +25,15 @@ class SessionManager:
 
     def start(self, title: str = "", language: str = "en", db_path: str = "") -> SessionRecord:
         """Begin a new session recording and persist the starting record."""
+        if title:
+            self._name = title
         if db_path:
             self.db_path = db_path
         with self._lock:
             if self._current is not None:
                 return self._current
             record = SessionRecord(
-                title=title or self._name,
+                title=self._name,
                 source_device=self.source_device,
                 language=language,
                 action_items=[],

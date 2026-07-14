@@ -27,22 +27,55 @@ Edit `backend\config.py` before first run if defaults need adjustment:
 
 `backend\config.py` uses `pydantic_settings` and loads values from `.env` in the repo root if present. This is the safest way to change settings without editing source.
 
+#### Local GGUF mode
+
 Example `.env`:
 
 ```env
+LLM_BACKEND=local
 TRANSCRIBE_DEVICE=cuda
 TRANSCRIBE_COMPUTE_TYPE=float16
 DEVICE_NAME_SUBSTR=stereo mix
 LLM_GPU_LAYERS=20
+LLM_MODEL_PATH=models/llama-2-7b-chat.Q4_K_M.gguf
 ```
 
-## Running on CPU vs CUDA
+#### API provider mode
 
-### Automatic detection
+Set `LLM_BACKEND=openai_compat` and point settings at your OpenAI-compatible endpoint:
 
-`backend\main.py` checks for `nvidia-smi` at startup and prints compute mode in the startup report. If CUDA is unavailable, it falls back to CPU automatically.
+```env
+LLM_BACKEND=openai_compat
+OPENAI_API_BASE=http://localhost:1234/v1
+OPENAI_API_KEY=lm-studio
+OPENAI_MODEL=nvidia-nemotron-3-nano-4b-instruct
+TRANSCRIBE_DEVICE=cuda
+TRANSCRIBE_COMPUTE_TYPE=float16
+DEVICE_NAME_SUBSTR=stereo mix
+```
 
-### CPU mode
+In provider mode, `LLM_MODEL_PATH` and `LLM_GPU_LAYERS` are not used for inference. Audio and RAG still run locally.
+
+## API provider validation
+
+- Start the provider server so `$OPENAI_API_BASE/chat/completions` is reachable.
+- Configure settings in `.env` with `LLM_BACKEND=openai_compat`.
+- Run `python backend\main.py --benchmark`. If provider latency is too high, lower `MAX_TRANSCRIPT_CHARS` or inspect your model's hosted context window.
+- Common provider errors:
+  - `openai_http_error` / `openai_url_error`: verify `OPENAI_API_BASE`, port, and API key.
+  ## Running on CPU vs CUDA
+
+  ### Automatic detection
+
+  `backend\main.py` checks for `nvidia-smi` at startup and prints compute mode in the startup report. If CUDA is unavailable, it falls back to CPU automatically.
+
+  ### Provider mode
+
+  - In provider mode, local GPU layers are not used for the LLM, but STT can still use CUDA with `TRANSCRIBE_DEVICE=cuda`.
+  - Latency now depends on provider response time; benchmark with `python backend\main.py --benchmark`.
+  - If suggestions are slower than expected, truncate context with `MAX_TRANSCRIPT_CHARS` or use a faster hosted model.
+
+  ### CPU mode
 
 - Use CPU if no NVIDIA GPU is present.
 - Set `TRANSCRIBE_DEVICE=cpu` and `TRANSCRIBE_COMPUTE_TYPE=int8` in `.env` or `config.py`.
