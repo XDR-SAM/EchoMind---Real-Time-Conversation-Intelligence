@@ -137,13 +137,13 @@ python scripts\download_models.py
 
 This saves the GGUF file to:
 
-- `backend/models/llama-2-7b-chat.Q4_K_M.gguf`
+- `backend\\models\\NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf`
 - HF cache directory under `%USERPROFILE%/.cache/huggingface/hub/`
 
 ### Manual download / verify links
 
-- **LLM source:** https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF
-- **LLM file:** https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
+- **LLM source:** https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF
+- **LLM file:** https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF/resolve/main/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf
 - **Whisper source:** faster-whisper downloads automatically from the Hugging Face Hub to the OS cache on first run.
 
 ### CPU vs CUDA note
@@ -412,7 +412,7 @@ real-time-ai-copilot/
 │       ├── sequence.md       # runtime sequence diagram
 │       └── er.md             # conceptual data-flow diagram
 ├── scripts/
-│   ├── download_models.py    # fetch Llama-2 GGUF on Windows
+│   ├── download_models.py    # fetch default GGUF LLM on Windows
 │   ├── run.py                # recommended launcher
 │   └── verify.py             # import / health checks
 ├── tests/
@@ -495,7 +495,7 @@ Environment / model preflight checklist:
 1. Windows 10/11 64-bit
 2. NVIDIA GPU with CUDA-capable driver
 3. Python 3.10–3.11
-4. `llama-2-7b-chat.Q4_K_M.gguf` available at `backend/models/`
+4. `NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` available at `backend\\models\\`
 5. `Stereo Mix` enabled if using system audio
 
 ---

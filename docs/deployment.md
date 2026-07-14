@@ -13,7 +13,7 @@ Edit `backend\config.py` before first run if defaults need adjustment:
 | `DEVICE_NAME_SUBSTR` | `speakers` | Substring matched against Windows recording devices |
 | `TRANSCRIBE_DEVICE` | `cpu` | `cpu` or `cuda` |
 | `TRANSCRIBE_COMPUTE_TYPE` | `int8` | `int8` on CPU, `float16` on CUDA |
-| `LLM_MODEL_PATH` | `models\llama-2-7b-chat.Q4_K_M.gguf` | GGUF model file location |
+| `LLM_MODEL_PATH` | `models\\NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` | GGUF model file location |
 | `LLM_CONTEXT_SIZE` | `2048` | LLM context window |
 | `LLM_GPU_LAYERS` | `35` | GPU offloaded layers for RTX 2060 6GB |
 | `RAG_EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model |
@@ -37,7 +37,7 @@ TRANSCRIBE_DEVICE=cuda
 TRANSCRIBE_COMPUTE_TYPE=float16
 DEVICE_NAME_SUBSTR=stereo mix
 LLM_GPU_LAYERS=20
-LLM_MODEL_PATH=models/llama-2-7b-chat.Q4_K_M.gguf
+LLM_MODEL_PATH=models/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf
 ```
 
 #### API provider mode
@@ -134,7 +134,7 @@ python scripts\download_models.py
 ```
 
 What it stores:
-- `models\llama-2-7b-chat.Q4_K_M.gguf` (LLM)
+- `models\\NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` (LLM)
 - Whisper model is auto-cached by faster-whisper on first transcription
 
 Re-run if the LLM file is missing or smaller than 10 MB.

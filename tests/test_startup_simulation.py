@@ -100,8 +100,13 @@ class StartupSimulationTests(TestCase):
         class FakeLLMEngine:
             def __init__(self, *args, **kwargs):
                 pass
+
+            def suggest_structured(self, transcript="", docs="", current="", generation_kwargs=None, **kwargs):
+                return type("s", (), {"text": "suggestion", "language": "en", "token_count": 0, "source": "llm"})()
+
             def suggest(self, prompt, max_tokens=0, temperature=0.0):
-                return "suggestion"
+                return self.suggest_structured()
+
             def close(self):
                 return None
 

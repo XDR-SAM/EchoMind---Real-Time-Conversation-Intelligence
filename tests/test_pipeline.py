@@ -3,11 +3,21 @@ from __future__ import annotations
 
 import threading
 from queue import Queue
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover - environment guard
+    np = None  # type: ignore[assignment]
 
-from backend.pipeline import Pipeline
+try:
+    from backend.pipeline import Pipeline
+except ImportError:
+    Pipeline = None  # type: ignore[assignment,misc]
+
+
+def _numpy_missing() -> bool:
+    return np is None
 
 
 class FakeAudio:

@@ -67,11 +67,12 @@ class StaticModuleTests(TestCase):
             "OVERLAY_WIDTH",
             "OVERLAY_HEIGHT",
         }
-        declared = {
-            assign.targets[0].id
-            for assign in settings_class.body
-            if isinstance(assign, ast.Assign) and assign.targets and isinstance(assign.targets[0], ast.Name)
-        }
+        declared = set()
+        for node in settings_class.body:
+            if isinstance(node, ast.Assign) and node.targets and isinstance(node.targets[0], ast.Name):
+                declared.add(node.targets[0].id)
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                declared.add(node.target.id)
         self.assertTrue(
             expected_names.issubset(declared),
             f"Missing expected settings: {sorted(expected_names - declared)}",

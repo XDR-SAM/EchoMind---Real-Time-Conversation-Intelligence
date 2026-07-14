@@ -16,9 +16,26 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from dataclasses import dataclass, field
+from types import SimpleNamespace
+from urllib.request import urlopen as _urlopen, Request as _Request
+from urllib.error import HTTPError as _HTTPError, URLError as _URLError
 
 LOG = logging.getLogger("llm_engine")
+
+# Module-level names so tests can patch them via ``backend.llm_engine.``.
+urlopen = _urlopen
+Request = _Request
+HTTPError = _HTTPError
+URLError = _URLError
+
+
+def _get_settings():
+    try:
+        return sys.modules["backend.config"].settings
+    except Exception:
+        return None
 
 
 @dataclass(frozen=True)
@@ -105,7 +122,8 @@ class LLMEngine:
     """Wrapper around local or OpenAI-compatible inference with guarded output contract."""
 
     def __init__(self, model_path: str, n_ctx: int = 2048, n_gpu_layers: int = 35) -> None:
-        self._backend = getattr(settings, "LLM_BACKEND", "local")
+        _settings = _get_settings() or SimpleNamespace(LLM_BACKEND="local")
+        self._backend = getattr(_settings, "LLM_BACKEND", "local")
         self._model_path = model_path
         self._n_ctx = n_ctx
         self._n_gpu_layers = n_gpu_layers
@@ -124,9 +142,14 @@ class LLMEngine:
                 raise RuntimeError(f"llm_init_failed:{exc}") from exc
 
     def _openai_chat(self, prompt: str, generation_kwargs: dict | None = None) -> str:
-        api_base = getattr(settings, "OPENAI_API_BASE", "http://localhost:1234/v1").rstrip("/")
-        api_key = getattr(settings, "OPENAI_API_KEY", "lm-studio") or "lm-studio"
-        model = getattr(settings, "OPENAI_MODEL", "")
+        _settings = _get_settings() or SimpleNamespace(
+            OPENAI_API_BASE="http://localhost:1234/v1",
+            OPENAI_API_KEY="lm-studio",
+            OPENAI_MODEL="",
+        )
+        api_base = getattr(_settings, "OPENAI_API_BASE", "http://localhost:1234/v1").rstrip("/")
+        api_key = getattr(_settings, "OPENAI_API_KEY", "lm-studio") or "lm-studio"
+        model = getattr(_settings, "OPENAI_MODEL", "")
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         messages = [{"role": "user", "content": prompt}]
         payload = {
@@ -137,14 +160,11 @@ class LLMEngine:
         }
         if generation_kwargs:
             payload.update(generation_kwargs)
-        from urllib.request import Request, urlopen
-        from urllib.error import URLError, HTTPError
-        import json as _json
-        data = _json.dumps(payload).encode("utf-8")
+        data = json.dumps(payload).encode("utf-8")
         req = Request(f"{api_base}/chat/completions", data=data, headers=headers, method="POST")
         try:
             with urlopen(req, timeout=120) as resp:
-                body = _json.loads(resp.read().decode("utf-8"))
+                body = json.loads(resp.read().decode("utf-8"))
         except HTTPError as exc:
             raise RuntimeError(f"openai_http_error:{exc.code}:{exc.reason}") from exc
         except URLError as exc:
