@@ -1,0 +1,35 @@
+name: echomind
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - echomind-models:/app/models
+      - echomind-hf:/root/.cache/huggingface
+    environment:
+      # Force CPU/Runtime-appropriate settings in container unless overridden
+      TRANSCRIBE_DEVICE: cpu
+      TRANSCRIBE_COMPUTE_TYPE: int8
+      LLM_GPU_LAYERS: 0
+      LLM_CONTEXT_SIZE: 2048
+      MODEL_NAME: small
+      RAG_EMBEDDING_MODEL: all-MiniLM-L6-v2
+      RAG_TOP_K: 3
+      MAX_TRANSCRIPT_CHARS: 1200
+    network_mode: host
+
+  # Optional: CI/test runner
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
+
+volumes:
+  echomind-models:
+  echomind-hf:

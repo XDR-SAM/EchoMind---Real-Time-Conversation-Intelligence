@@ -17,4 +17,13 @@ Current backend: PyQt6 overlay, faster-whisper, llama-cpp, sentence-transformers
 
 ## Live Work Log
 - 2026-07-14: Added README polish, CLI launcher, structured LLM output, layered docs, MIT license, real clone URL, screenshots section
-- 2026-07-14: Started continuous gap-analysis + competitive research + incremental build workflow
+- 2026-07-14: Updated README anchors, added explicit model download commands, fixed installation.md and usage.md
+- 2026-07-14: Added session persistence (session.py, session_store.py), Exporter (exporter.py)
+- 2026-07-14: Added ActionItem + `suggest_action_items(transcript)` in llm_engine.py
+- 2026-07-14: Added Dockerfile, docker-compose.yml, .dockerignore for headless/test/benchmark container support
+
+## Backend Session Worklog
+- backend/session_store.py: SQLite-backed session persistence
+- backend/session.py: Session lifecycle manager
+- backend/exporter.py: JSON/CSV export helpers
+- backend/llm_engine.py: ActionItem dataclass + extract_action_items() method

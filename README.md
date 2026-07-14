@@ -11,6 +11,7 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
 ![CUDA](https://img.shields.io/badge/CUDA-12.x-76b900?logo=nvidia)
 ![PyQt6](https://img.shields.io/badge/PyQt-6-lightblue?logo=qt)
 ![faiss](https://img.shields.io/badge/FAISS-CPU%2FGPU-orange)
+![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
 
 <p align="center">
   <a href="#features">Features</a> ·
@@ -21,6 +22,7 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
   <a href="#usage">Usage</a> ·
   <a href="#performance">Performance</a> ·
   <a href="#project-structure">Structure</a> ·
+  <a href="#docker">Docker</a> ·
   <a href="#contributing">Contributing</a> ·
   <a href="#license">License</a>
 </p>
@@ -226,8 +228,51 @@ OVERLAY_HEIGHT: int = 420
 ```powershell
 python -m backend.pipeline --profile
 # or
-python backend\\main.py --benchmark
+python backend\main.py --benchmark
 ```
+
+---
+
+## 🐳 Docker
+
+EchoMind can run in a container for development, tests, and headless benchmarking.
+
+> The containerized path is **Linux-based**, so it does **not** provide the Windows desktop GUI or WASAPI system audio capture. For the full local Windows experience, use the native setup in [Quick Start](#quick-start).
+
+### What the container supports
+
+- dependency validation
+- unit tests
+- headless benchmark mode
+- config parsing checks
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Commands
+
+```bash
+# Build image
+docker compose build app
+
+# Run benchmark inside container
+docker compose run --rm app python backend/main.py --benchmark
+
+# Run tests
+docker compose run --rm test
+
+# Interactive shell
+docker compose run --rm app bash
+```
+
+### Notes
+
+- The container mounts the repo read-write by default.
+- Model files are stored in a named volume, `echomind-models`.
+- Hugging Face cache is stored in `echomind-hf`.
+- If you need GPU acceleration later, convert this to an NVIDIA CUDA base image and enable `runtime: nvidia` in Compose. The current image targets **CPU** inference for portability.
 
 ---
 
@@ -270,14 +315,67 @@ real-time-ai-copilot/
 │   └── verify.py             # import / health checks
 ├── tests/
 │   ├── test_pipeline.py      # pipeline contract tests
-│   ├── test_startup_simulation.py
-│   └── test_static.py
+│   └── test_startup_simulation.py
 ├── blueprint.md              # original product blueprint
+├── Dockerfile                # container build for headless/test/benchmark use
+├── docker-compose.yml        # service definitions for app and CI test runner
+├── .dockerignore             # build context exclusions
 ├── requirements.txt
 ├── requirements_windows.txt
 ├── LICENSE
 └── README.md
 ```
+
+---
+
+## 🐳 Docker
+
+EchoMind provides a Linux container for reproducible development and headless validation.
+
+> The container does **not** replace the Windows desktop experience. There is no WASAPI audio capture and no tray/overlay support in Linux containers. Use this for tests, benchmarks, and dependency validation.
+
+### Services
+
+```yaml
+app:     interactive container with source mounted and model/cache volumes
+test:    runs unit tests
+```
+
+### Commands
+
+```bash
+# Build image
+docker compose build app
+
+# Run a benchmark
+docker compose run --rm app python backend/main.py --benchmark
+
+# Run tests
+docker compose run --rm test
+
+# Open a shell
+docker compose run --rm app bash
+```
+
+### Volumes
+
+- `echomind-models` — local model cache
+- `echomind-hf` — Hugging Face cache
+
+### Environment defaults
+
+The Compose file sets CPU-safe defaults:
+
+- `TRANSCRIBE_DEVICE=cpu`
+- `TRANSCRIBE_COMPUTE_TYPE=int8`
+- `LLM_GPU_LAYERS=0`
+
+Override these via `.env` or Compose `environment` mappings as needed.
+
+### Notes
+
+- PyQt6 is installed but no display server is provided; use `--benchmark` or tests only.
+- If you later add CUDA container support, switch the base image to an NVIDIA CUDA image and use `runtime: nvidia` or the Docker CUDA runtime.
 
 ---
 
