@@ -14,10 +14,19 @@ Design goals:
 """
 from __future__ import annotations
 
+import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 LOG = logging.getLogger("llm_engine")
+
+
+@dataclass(frozen=True)
+class ActionItem:
+    text: str
+    owner: str | None = None
+    due: str | None = None
+    confidence: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -68,6 +77,20 @@ def _build_suggest_prompt(transcript: str, docs: str, current: str) -> str:
     return prompt
 
 
+def _build_action_prompt(transcript: str) -> str:
+    """Assemble a constrained prompt to extract action items."""
+    transcript_block = (transcript or "").strip()[:1200]
+    return (
+        "<s>[INST] <<SYS>>\n"
+        "Extract only the explicit action items from the meeting transcript.\n"
+        'Reply as a JSON array only: [{"text": "...", "owner": "...", "due": "..."}].\n'
+        "Use empty strings instead of inventing missing fields.\n"
+        "<</SYS>>\n\n"
+        f"Transcript:\n{transcript_block}\n\n"
+        "Reply JSON: [/INST]"
+    )
+
+
 def apply_suggestion_guardrails(text: str, max_chars: int = 800) -> str:
     """Apply deterministic guardrails to LLM output."""
     if not text:
@@ -100,19 +123,21 @@ class LLMEngine:
         transcript: str = "",
         docs: str = "",
         current: str = "",
-        max_tokens: int = 220,
-        temperature: float = 0.15,
+        generation_kwargs: dict | None = None,
     ) -> LLMSuggestion:
         prompt = _build_suggest_prompt(
             transcript=transcript, docs=docs, current=current
         )
+        stop_tokens = ["User:", "\nUser", "Assistant:"]
+        gen = {
+            "max_tokens": 220,
+            "temperature": 0.15,
+            "stop": stop_tokens,
+        }
+        if generation_kwargs:
+            gen.update(generation_kwargs)
         try:
-            result = self._model(
-                prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                stop=["User:", "\nUser", "Assistant:"],
-            )
+            result = self._model(prompt, **gen)
         except Exception as exc:
             LOG.warning("LLM inference failed: %s", exc)
             return LLMSuggestion(text="", source="fallback")
@@ -129,15 +154,60 @@ class LLMEngine:
     def suggest(
         self,
         prompt: str,
-        max_tokens: int = 220,
-        temperature: float = 0.15,
+        generation_kwargs: dict | None = None,
     ) -> LLMSuggestion:
         """Backwards-compatible wrapper for single-prompt suggestion calls.
         Kept so benchmark and legacy callers do not need edits.
         """
         return self.suggest_structured(
-            transcript=prompt, max_tokens=max_tokens, temperature=temperature
+            transcript=prompt, generation_kwargs=generation_kwargs
         )
+
+    def suggest_action_items(
+        self,
+        transcript: str,
+        generation_kwargs: dict | None = None,
+    ) -> list[ActionItem]:
+        prompt = _build_action_prompt(transcript)
+        stop_tokens = ["User:", "\nUser", "Assistant:"]
+        gen = {
+            "max_tokens": 160,
+            "temperature": 0.0,
+            "stop": stop_tokens,
+        }
+        if generation_kwargs:
+            gen.update(generation_kwargs)
+        try:
+            result = self._model(prompt, **gen)
+        except Exception as exc:
+            LOG.warning("LLM action item extraction failed: %s", exc)
+            return []
+        choices = result.get("choices") or []
+        raw_text = ""
+        if choices:
+            raw_text = (choices[0].get("text") or "").strip()
+        if not raw_text:
+            return []
+        try:
+            objects = json.loads(raw_text)
+        except json.JSONDecodeError:
+            LOG.debug("Action items JSON parse failed; returning empty list.")
+            return []
+        if not isinstance(objects, list):
+            return []
+        items: list[ActionItem] = []
+        for item in objects:
+            if not isinstance(item, dict):
+                continue
+            text = (item.get("text") or "").strip()
+            if not text:
+                continue
+            owner = (item.get("owner") or "").strip() or None
+            due = (item.get("due") or "").strip() or None
+            confidence = float(item.get("confidence") or 0.4)
+            confidence = max(0.0, min(1.0, confidence))
+            items.append(ActionItem(text=text, owner=owner, due=due, confidence=confidence))
+        return items
 
     def close(self) -> None:
         try:
