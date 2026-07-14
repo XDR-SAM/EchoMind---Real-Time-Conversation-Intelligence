@@ -1,0 +1,20 @@
+graph TD
+    A["🎙️ Windows Audio<br/>WASAPI Loopback"] --> B["🎧 Audio Capture<br/>soundcard / Stereo Mix"]
+    B --> C{"EnergyVAD Filter"}
+    C -->|Speech| D["⏱️ 2s Chunk Buffer"]
+    C -->|Silence| C
+    D --> E["🧠 Faster-Whisper small<br/>transcribe: text + language"]
+    E --> F["📝 Rolling Transcript Buffer<br/>context capped @ 1200 chars"]
+    F --> G["🔍 Context Engine<br/>Sentence-Transformers + FAISS"]
+    F --> H["🧠 Llama-2-7B-Chat Q4 K_M<br/>llama-cpp GPU layers"]
+    G --> H
+    H --> I{"Validation"}
+    I -->|Pass| J["📋 Bounded UI Update"]
+    I -->|Reject| K["Drop Output"]
+    J --> L["🖥️ PyQt6 Overlay<br/>Always-on-top + System Tray"]
+    L --> M["👤 User reads suggestion"]
+    M --> F
+    classDef box fill:#e8f4ff,stroke:#333,stroke-width:1.2px,color:#000
+    class A,B,D,E,F,G,H,I,J,L,M box
+    style C fill:#fff9e6,stroke:#c9a227,stroke-width:1.2px
+    style K fill:#ffe6e6,stroke:#c33,stroke-width:1.2px
