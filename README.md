@@ -6,7 +6,7 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
 
 <!-- BADGES -->
 ![Python](https://img.shields.io/badge/Python-3.10%203.11-blue?logo=python)
-![License](https://img.shields.io/badge/License-Commercial-green)
+![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2011-lightgrey?logo=windows)
 ![CUDA](https://img.shields.io/badge/CUDA-12.x-76b900?logo=nvidia)
 ![PyQt6](https://img.shields.io/badge/PyQt-6-lightblue?logo=qt)
@@ -16,10 +16,10 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
   <a href="#features">Features</a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="#architecture">Architecture</a> ·
-  <a href="#quickstart">Quick Start</a> ·
+  <a href="#quick-start">Quick Start</a> ·
   <a href="#configuration">Configuration</a> ·
   <a href="#usage">Usage</a> ·
-  <a href="#performance-targets">Performance</a> ·
+  <a href="#performance">Performance</a> ·
   <a href="#project-structure">Structure</a> ·
   <a href="#contributing">Contributing</a> ·
   <a href="#license">License</a>
@@ -36,11 +36,12 @@ Local desktop conversation intelligence for Windows. Captures system audio, tran
 Developed by **Sami**.
 
 ---
+
 ## ✨ Features
 
-- **Live system audio transcription** — WASAPI loopback with `soundcard`, Works with meeting apps, browser tabs, and music.
+- **Live system audio transcription** — WASAPI loopback with `soundcard`, works with meeting apps, browser tabs, and music.
 - **Bangla + English + mixed speech** — Faster-Whisper `small` for strong code-switching accuracy.
-- **RAG over your documents** — drop `.txt` / `.md` / `.csv` into `backend/docs_ingested/`, Tada, FAISS + `all-MiniLM-L6-v2` does the rest.
+- **RAG over your documents** — drop `.txt` / `.md` / `.csv` into `backend/docs_ingested/`, FAISS + `all-MiniLM-L6-v2` does the rest.
 - **Real-time AI suggestions** — Llama 2 7B Chat Q4_K_M via `llama-cpp-python`, GPU offloaded when possible.
 - **Always-on-top overlay** — draggable PyQt6 window + system tray.
 - **Privacy-first** — inference is local. No telemetry, no cloud model calls by default.
@@ -51,11 +52,7 @@ Developed by **Sami**.
 
 ![EchoMind overlay layout](assets/docs/arch.png)
 
-Additional assets:
-
-- Architecture source: `assets/docs/architecture.mmd`
-
-> **Maintainer tip:** replace `assets/docs/arch.png` with a real app screenshot when available. The diagram above shows the current overlay layout and pipeline flow.
+> **Maintainer note:** replace `assets/docs/arch.png` with an actual app screenshot from the overlay UI.
 
 ---
 
@@ -94,31 +91,63 @@ graph TD
 
 ## 🚀 Quick Start
 
-```bash
+```powershell
 # 1. Clone
 git clone https://github.com/XDR-SAM/EchoMind---Real-Time-Conversation-Intelligence.git
 cd real-time-ai-copilot
 
 # 2. Create virtualenv
 python -m venv .venv
-.venv\Scripts\activate
+.\\.venv\\Scripts\\Activate.ps1
 
 # 3. Install dependencies
-pip install --upgrade pip
+python -m pip install --upgrade pip
 pip install -r requirements_windows.txt
 
 # 4. Download models
-python scripts\download_models.py
+python scripts\\download_models.py
 
 # 5. Add your context docs (optional)
-# Drop files into:
-#   backend\docs_ingested\
+# Drop files into backend\\docs_ingested\\
 
 # 6. Run
-python scripts\run.py
+python scripts\\run.py
 ```
 
 > **Whisper model caching:** `faster-whisper` downloads the `small` model to the OS cache automatically on first run.
+> **Model downloads:** see the **Models** section below for exact files and URLs.
+
+---
+
+## 🤖 Models
+
+EchoMind uses two local model categories:
+
+1. **LLM:** `llama-2-7b-chat.Q4_K_M.gguf` via `llama-cpp-python`
+2. **Whisper:** `small` model for speech-to-text via `faster-whisper`
+
+### Auto download
+
+```powershell
+python scripts\\download_models.py
+```
+
+This saves the GGUF file to:
+
+- `backend/models/llama-2-7b-chat.Q4_K_M.gguf`
+- HF cache directory under `%USERPROFILE%/.cache/huggingface/hub/`
+
+### Manual download / verify links
+
+- **LLM source:** https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF
+- **LLM file:** https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
+- **Whisper source:** faster-whisper downloads automatically from the Hugging Face Hub to the OS cache on first run.
+
+### CPU vs CUDA note
+
+- CUDA install: uses `--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121`
+- CPU install: use `llama-cpp-python==0.2.90`
+- If wheels fail, see the CPU fallback in `docs/installation.md`.
 
 ---
 
@@ -147,19 +176,17 @@ OVERLAY_HEIGHT: int = 420
 
 ## 🖱️ Usage
 
-```bash
-# Recommended launcher
-python scripts\run.py
-```
-
 ### Controls
 
 | Control | Action |
 |---|---|
 | **Drag overlay body** | Move the floating window |
 | **Microphone checkbox** | Switch to mic input for testing |
+| **Start / Stop session** | Begin or end a recorded session |
+| **Export** | Save the current session to disk |
 | **Exit button** | Quit the app |
-| **Tray icon** | Restore / hide overlay |
+
+> If export is not available in your build, the Export action is hidden automatically.
 
 ### Tips
 
@@ -174,7 +201,7 @@ python scripts\run.py
 |---|---|
 | **No audio device found** | Enable `Stereo Mix` in Windows Sound Settings → Recording, then set `DEVICE_NAME_SUBSTR` in `backend/config.py`. |
 | **CUDA OOM** | Lower `LLM_GPU_LAYERS` in `config.py`, or run STT on CPU. |
-| **Slow transcription on CPU** | Use `MODEL_NAME="tiny"`, or switch to `small.en` if mostly English. |
+| **Whisper slow transcription on CPU** | Use `MODEL_NAME="tiny"`, or switch to `small.en` if mostly English. |
 | **Poor Bangla transcription** | Use at least `MODEL_NAME="small"`. `tiny` struggles with Bangla morphology. |
 | **No suggestions generated** | Confirm `models/llama-2-7b-chat.Q4_K_M.gguf` exists and is fully downloaded. |
 | **Overlay blurry** | Set display scaling to `100%`, restart app. |
@@ -182,7 +209,7 @@ python scripts\run.py
 
 ---
 
-## 🎯 Performance Targets
+## 🎯 Performance
 
 > Reference hardware: **NVIDIA RTX 2060 6 GB**, 16 GB RAM, Windows 10/11.
 
@@ -196,8 +223,10 @@ python scripts\run.py
 
 ### How to measure
 
-```bash
+```powershell
 python -m backend.pipeline --profile
+# or
+python backend\\main.py --benchmark
 ```
 
 ---
@@ -213,15 +242,20 @@ real-time-ai-copilot/
 ├── backend/
 │   ├── __init__.py
 │   ├── audio_capture.py      # WASAPI loopback via soundcard
-│   ├── config.py             # typed settings (Pydantic) + .env
+│   ├── config.py             # typed settings + .env
 │   ├── context_engine.py     # Sentence-Transformers + FAISS
-│   ├── llm_engine.py         # llama-cpp-python wrapper + validation
+│   ├── exporter.py           # export sessions to JSON/CSV
+│   ├── llm_engine.py         # llama-cpp-python wrapper + guardrails
 │   ├── main.py               # application entrypoint
 │   ├── pipeline.py           # phased inference pipeline + guardrails
+│   ├── session.py            # session lifecycle manager
+│   ├── session_store.py      # SQLite-backed session persistence
 │   ├── transcriber.py        # faster-whisper wrapper
 │   ├── ui.py                 # PyQt6 floating overlay + tray
 │   └── vad.py                # lightweight energy-based VAD
 ├── docs/
+│   ├── competitive_research.md
+│   ├── gap_analysis.md
 │   ├── engineering.md        # latency budget, optimization notes
 │   ├── installation.md       # setup prerequisites and first run
 │   ├── usage.md              # controls, tray, audio, docs ingestion
@@ -241,6 +275,7 @@ real-time-ai-copilot/
 ├── blueprint.md              # original product blueprint
 ├── requirements.txt
 ├── requirements_windows.txt
+├── LICENSE
 └── README.md
 ```
 
@@ -260,7 +295,7 @@ Environment / model preflight checklist:
 1. Windows 10/11 64-bit
 2. NVIDIA GPU with CUDA-capable driver
 3. Python 3.10–3.11
-4. `llama-2-7b-chat.Q4_K_M.gguf` downloaded
+4. `llama-2-7b-chat.Q4_K_M.gguf` available at `backend/models/`
 5. `Stereo Mix` enabled if using system audio
 
 ---
@@ -271,12 +306,13 @@ Contributions are welcome — especially around:
 
 - Model swapping (`small.en`, `medium.en`, multilingual Whisper V3)
 - VAD improvements (Silero VAD adapter)
+- Session export and persistence polish
 - FAISS persistence and hot-reload docs
 - GPU memory profiling across NVIDIA generations
 
 ### Local contribution workflow
 
-```bash
+```powershell
 # 1. Fork / clone
 git clone https://github.com/XDR-SAM/EchoMind---Real-Time-Conversation-Intelligence.git
 cd real-time-ai-copilot
@@ -285,7 +321,7 @@ cd real-time-ai-copilot
 git checkout -b feat/your-change
 
 # 3. Test
-pytest
+python -m unittest discover -s tests
 
 # 4. Commit & push
 git commit -m "feat: <your change>"
