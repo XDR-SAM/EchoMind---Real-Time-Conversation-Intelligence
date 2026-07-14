@@ -1,9 +1,56 @@
-*.pyc
+# Python
 __pycache__/
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.installed.cfg
 .venv/
-models/
-docs_ingested/
 .env
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv311/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project data/models/cache
+models/
+backend/models/
+backend/docs_ingested/
+data/
 *.gguf
+*.bin
+*.safetensors
+*.onnx
+*.pt
+*.pth
+.cache/
+.huggingface/
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+.tox/
+
+# Docs/assets
+assets/docs/screenshot.png
