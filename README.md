@@ -96,7 +96,7 @@ graph TD
 
 ```bash
 # 1. Clone
-git clone https://github.com/<your-org>/real-time-ai-copilot.git
+git clone https://github.com/XDR-SAM/EchoMind---Real-Time-Conversation-Intelligence.git
 cd real-time-ai-copilot
 
 # 2. Create virtualenv
@@ -278,7 +278,7 @@ Contributions are welcome — especially around:
 
 ```bash
 # 1. Fork / clone
-git clone https://github.com/<your-username>/real-time-ai-copilot.git
+git clone https://github.com/XDR-SAM/EchoMind---Real-Time-Conversation-Intelligence.git
 cd real-time-ai-copilot
 
 # 2. Branch
